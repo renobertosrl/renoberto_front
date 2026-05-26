@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="5" fill="#1a1815"/>
+  <!-- Triple stems -->
+  <rect x="3" y="3" width="2.2" height="24" rx="0.5" fill="#e8e2d9"/>
+  <rect x="6.8" y="3" width="2.2" height="24" rx="0.5" fill="#e8e2d9"/>
+  <rect x="10.6" y="3" width="2.2" height="24" rx="0.5" fill="#e8e2d9"/>
+  <!-- Bowl of R -->
+  <path d="M12.8 3 H20 Q28 3 28 9.5 Q28 16 20 16 H12.8" stroke="#e8e2d9" stroke-width="1.6" fill="none" stroke-linejoin="round"/>
+  <!-- Leg -->
+  <path d="M16.5 16 L19.5 20" stroke="#e8e2d9" stroke-width="1.6" stroke-linecap="round"/>
+  <!-- House roof -->
+  <path d="M15 24 L15 20 L22 15.5 L29 20 L29 24" stroke="#e8e2d9" stroke-width="1.4" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+  <!-- House body -->
+  <path d="M15 24 L15 29 L29 29 L29 24" stroke="#e8e2d9" stroke-width="1.4" fill="none" stroke-linejoin="round"/>
+  <!-- Door -->
+  <rect x="19.5" y="24.5" width="5" height="4.5" stroke="#e8e2d9" stroke-width="1.2" fill="none" rx="0.3"/>
+</svg>
