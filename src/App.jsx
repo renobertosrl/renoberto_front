@@ -46,8 +46,10 @@ const EMPTY_STATE = {
   messages: [], auth: null,
 };
 
-// Last public state from the API, so returning visitors don't wait for the server
+// Public state saved at build time (scripts/snapshot.mjs) and after each visit,
+// so the site renders immediately instead of waiting for the server to wake up
 const CACHE_KEY = 'rb_state_cache';
+const SNAPSHOT = Object.values(import.meta.glob('./data/snapshot.json', { eager: true, import: 'default' }))[0];
 
 function readCache() {
   try {
@@ -59,7 +61,14 @@ function readCache() {
 }
 
 function writeCache(data) {
-  try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch {}
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), data })); } catch {}
+}
+
+// Newest of the browser cache and the build snapshot, as { at, data }
+function readInitial() {
+  const cache = readCache();
+  const candidates = [cache, SNAPSHOT].filter(c => c?.data && c.at);
+  return candidates.sort((a, b) => b.at - a.at)[0]?.data ?? null;
 }
 
 function useHashRoute() {
@@ -76,8 +85,9 @@ function useHashRoute() {
 }
 
 export default function App() {
-  const [hasCache] = useState(() => readCache() !== null);
-  const [state, setStateRaw] = useState(() => ({ ...EMPTY_STATE, ...readCache() }));
+  const [initial] = useState(readInitial);
+  const hasInitial = initial !== null;
+  const [state, setStateRaw] = useState(() => ({ ...EMPTY_STATE, ...initial }));
   const [fresh, setFresh] = useState(false);
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [route] = useHashRoute();
@@ -90,7 +100,7 @@ export default function App() {
         writeCache(data);
         setStateRaw(s => ({ ...s, ...data }));
       })
-      .catch(() => { if (!hasCache) setStateRaw(s => ({ ...s, ...DEFAULT_STATE })); })
+      .catch(() => { if (!hasInitial) setStateRaw(s => ({ ...s, ...DEFAULT_STATE })); })
       .finally(() => setFresh(true));
   }, []);
 
@@ -125,7 +135,7 @@ export default function App() {
   // Admin always edits fresh data; a project missing from the cache may just be new
   const missingProject = segments[0] === 'project' && segments[1]
     && !state.projects.some(p => p.slug === segments[1] || p.id === segments[1]);
-  const loading = !fresh && (!hasCache || isAdmin || missingProject);
+  const loading = !fresh && (!hasInitial || isAdmin || missingProject);
 
   useEffect(() => {
     document.body.classList.toggle('admin-body', isAdmin);

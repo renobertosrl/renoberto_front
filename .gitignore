@@ -8,3 +8,4 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 .vscode/settings.json
+src/data/snapshot.json
