@@ -46,6 +46,22 @@ const EMPTY_STATE = {
   messages: [], auth: null,
 };
 
+// Last public state from the API, so returning visitors don't wait for the server
+const CACHE_KEY = 'rb_state_cache';
+
+function readCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(data) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch {}
+}
+
 function useHashRoute() {
   const [route, setRoute] = useState(window.location.hash || '#/');
   useEffect(() => {
@@ -60,17 +76,22 @@ function useHashRoute() {
 }
 
 export default function App() {
-  const [state, setStateRaw] = useState(EMPTY_STATE);
-  const [loading, setLoading] = useState(true);
+  const [hasCache] = useState(() => readCache() !== null);
+  const [state, setStateRaw] = useState(() => ({ ...EMPTY_STATE, ...readCache() }));
+  const [fresh, setFresh] = useState(false);
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [route] = useHashRoute();
 
-  // Load public data from API (fall back to seed data if server is unreachable)
+  // Load public data from API (fall back to seed data if server is unreachable).
+  // With a cached copy the site renders immediately and updates when this resolves.
   useEffect(() => {
     api.getState()
-      .then(data => setStateRaw(s => ({ ...s, ...data })))
-      .catch(() => setStateRaw(s => ({ ...s, ...DEFAULT_STATE })))
-      .finally(() => setLoading(false));
+      .then(data => {
+        writeCache(data);
+        setStateRaw(s => ({ ...s, ...data }));
+      })
+      .catch(() => { if (!hasCache) setStateRaw(s => ({ ...s, ...DEFAULT_STATE })); })
+      .finally(() => setFresh(true));
   }, []);
 
   // Restore auth session from stored JWT
@@ -101,6 +122,11 @@ export default function App() {
   const segments = path.split('/').filter(Boolean);
   const isAdmin = segments[0] === 'admin';
 
+  // Admin always edits fresh data; a project missing from the cache may just be new
+  const missingProject = segments[0] === 'project' && segments[1]
+    && !state.projects.some(p => p.slug === segments[1] || p.id === segments[1]);
+  const loading = !fresh && (!hasCache || isAdmin || missingProject);
+
   useEffect(() => {
     document.body.classList.toggle('admin-body', isAdmin);
   }, [isAdmin]);
@@ -121,7 +147,7 @@ export default function App() {
       });
     }, 100);
     return () => { clearTimeout(t); io?.disconnect(); };
-  }, [route, loading, isAdmin]);
+  }, [route, loading, fresh, isAdmin]);
 
   const PAGE_TITLES = {
     '':          'Renoberto · Artisans rénovateurs Bruxelles',
